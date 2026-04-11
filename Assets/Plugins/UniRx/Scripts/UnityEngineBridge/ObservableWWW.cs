@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using UnityEngine;
+#pragma warning disable CS0618
 
 #if !UniRxLibrary
 using ObservableUnity = UniRx.Observable;
@@ -429,3 +430,4 @@ namespace UniRx
         }
     }
 }
+#pragma warning restore CS0618

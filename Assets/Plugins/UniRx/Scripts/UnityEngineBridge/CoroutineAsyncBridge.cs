@@ -8,6 +8,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEngine;
+#pragma warning disable CS0618
 
 namespace UniRx
 {
@@ -107,5 +108,6 @@ namespace UniRx
         }
     }
 }
+#pragma warning restore CS0618
 
 #endif

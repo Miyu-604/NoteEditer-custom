@@ -9,6 +9,7 @@ using System.Reflection;
 using System.Threading;
 using UniRx.InternalUtil;
 using UnityEngine;
+#pragma warning disable CS0618
 
 namespace UniRx
 {
@@ -437,7 +438,7 @@ namespace UniRx
 
                 try
                 {
-                    dispatcher = GameObject.FindObjectOfType<MainThreadDispatcher>();
+                    dispatcher = GameObject.FindFirstObjectByType<MainThreadDispatcher>();
                 }
                 catch
                 {
@@ -572,7 +573,7 @@ namespace UniRx
 
         public static void CullAllExcessDispatchers()
         {
-            var dispatchers = GameObject.FindObjectsOfType<MainThreadDispatcher>();
+            var dispatchers = GameObject.FindObjectsByType<MainThreadDispatcher>(FindObjectsSortMode.None);
             for (int i = 0; i < dispatchers.Length; i++)
             {
                 DestroyDispatcher(dispatchers[i]);
@@ -583,7 +584,7 @@ namespace UniRx
         {
             if (instance == this)
             {
-                instance = GameObject.FindObjectOfType<MainThreadDispatcher>();
+                instance = GameObject.FindFirstObjectByType<MainThreadDispatcher>();
                 initialized = instance != null;
 
                 /*
@@ -676,3 +677,4 @@ namespace UniRx
         }
     }
 }
+#pragma warning restore CS0618

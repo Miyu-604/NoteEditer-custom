@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using UniRx.Triggers;
 using UnityEngine;
 using System.Threading;
+#pragma warning disable CS0618
 
 #if !UniRxLibrary
 using SchedulerUnity = UniRx.Scheduler;
@@ -1163,3 +1164,4 @@ namespace UniRx
 #endif
     }
 }
+#pragma warning restore CS0618

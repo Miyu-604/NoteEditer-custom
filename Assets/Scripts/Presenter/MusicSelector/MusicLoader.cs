@@ -4,6 +4,7 @@ using System.Collections;
 using System.IO;
 using UniRx;
 using UnityEngine;
+using UnityEngine.Networking;
 
 namespace NoteEditor.Presenter
 {
@@ -21,13 +22,17 @@ namespace NoteEditor.Presenter
 
         IEnumerator LoadMusic(string fileName)
         {
-            using (var www = new WWW("file:///" + Path.Combine(MusicSelector.DirectoryPath.Value, fileName)))
+            var filePath = Path.Combine(MusicSelector.DirectoryPath.Value, fileName);
+            using (var request = UnityWebRequestMultimedia.GetAudioClip(new System.Uri(filePath).AbsoluteUri, AudioType.UNKNOWN))
             {
-                yield return www;
+                yield return request.SendWebRequest();
 
                 EditCommandManager.Clear();
                 ResetEditor();
-                Audio.Source.clip = www.GetAudioClip();
+                if (request.result == UnityWebRequest.Result.Success)
+                {
+                    Audio.Source.clip = DownloadHandlerAudioClip.GetContent(request);
+                }
 
                 if (Audio.Source.clip == null)
                 {
