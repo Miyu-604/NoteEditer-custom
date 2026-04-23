@@ -2,6 +2,8 @@
 音楽ゲーム用の譜面エディタです。
 現在 wav 形式の音楽ファイルを主対象としており、グリッド型ノートと連続値スライドノートを編集できます。[English](https://translate.google.com/translate?sl=ja&tl=en&u=https://github.com/setchi/NoteEditor) (by Google Translate)
 
+このプロジェクトは [setchi/NoteEditor](https://github.com/setchi/NoteEditor/tree/master) をベースに改良を加えたカスタム版です。
+
 ![screenshot](screenshot.png)
 
 ## コマンド一覧
@@ -53,7 +55,7 @@
 - 再生時クラップは通常ノートとスライドノートの両方を対象に鳴ります。
 
 ## 開発環境
-Unity 2019.1.5f1
+Unity 6 `6000.3.11f1`
 
 ## LICENSE
 [MIT](https://github.com/setchi/NoteEditor/blob/master/LICENSE)
