@@ -1,6 +1,6 @@
 # Note Editor [![license](https://img.shields.io/badge/license-MIT-green.svg?style=flat-square)](https://github.com/setchi/NoteEditor/blob/master/LICENSE) [![Release](https://img.shields.io/github/release/setchi/NoteEditor.svg?style=flat-square&logo=github)](https://github.com/setchi/NoteEditor/releases/latest)
 音楽ゲーム用の譜面エディタです。
-現在wav形式の音楽ファイルのみ対応しています。[English](https://translate.google.com/translate?sl=ja&tl=en&u=https://github.com/setchi/NoteEditor) (by Google Translate)
+現在 wav 形式の音楽ファイルを主対象としており、グリッド型ノートと連続値スライドノートを編集できます。[English](https://translate.google.com/translate?sl=ja&tl=en&u=https://github.com/setchi/NoteEditor) (by Google Translate)
 
 ![screenshot](screenshot.png)
 
@@ -32,6 +32,25 @@
 | ノーツ編集モードを切替える | Alt |
 | ロングノーツ編集を開始する      |      Shift + ノーツを配置    |
 | ロングノーツ編集モードを解除する      |   右クリック / Esc    |
+
+### スライドノート編集
+| アクション | コマンド |
+|:-----------|:------------|
+| スライドノートを追加する | スライドレーンをクリック |
+| スライドノートを削除する | 既存スライドノートをクリック |
+| スライドノート値を微調整する | 既存スライドノートをドラッグ |
+| スライドロングノート編集を開始する | Shift + スライドレーンをクリック |
+| スライドロングノート編集モードを解除する | 右クリック / Esc |
+
+## データ配置
+- 楽曲: `WorkSpacePath/Musics`
+- 譜面: `WorkSpacePath/Notes`
+
+## 現在の追加仕様
+- 通常ノートに加えて、`0.00` から `1.00` の連続値を持つスライドノートを扱えます。
+- スライドノートは `0.01` 単位で丸めて保存されます。
+- スライドノートも single / long の両方に対応しています。
+- 再生時クラップは通常ノートとスライドノートの両方を対象に鳴ります。
 
 ## 開発環境
 Unity 2019.1.5f1

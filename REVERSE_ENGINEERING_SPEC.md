@@ -9,6 +9,7 @@
 
 - 本プロジェクトは音楽ゲーム用の譜面エディタである。
 - 音声ファイルを読み込み、時間軸上にノーツを配置して譜面データを JSON 形式で保存する。
+- ノート系統は「グリッド型 block ノート」と「0.00〜1.00 の連続値を持つ continuous ノート」の 2 系統である。
 - 画面は大きく以下の 4 領域で構成される。
 - 楽曲選択領域
 - ツールストリップ領域
@@ -45,9 +46,9 @@ README では `wav` 対応と記載されているが、現実装では `UnityWe
 - 再生中に再生位置を動かすと、一時停止して操作後に再開する。
 - 再生終端に達すると再生フラグを false にする。
 
-### 4.3 譜面編集
+### 4.3 block ノート編集
 
-- シングルノートとロングノートの 2 種類を扱う。
+- block ノートはシングルノートとロングノートの 2 種類を扱う。
 - 編集モードはボタンまたは Alt キーで切り替える。
 - 譜面上の最近傍グリッド位置に対してクリック入力を行う。
 - シングルモード:
@@ -59,13 +60,29 @@ README では `wav` 対応と記載されているが、現実装では `UnityWe
 - 既存ロングノートクリックで節点削除または連結更新
 - Esc または右クリックでロングモード終了
 
-### 4.4 キーボード入力による打鍵登録
+### 4.4 continuous ノート編集
+
+- `NoteCanvas` 下部の continuous レーンで編集する。
+- 時間軸は block ノートと共有し、縦方向だけが `0.00`〜`1.00` の連続値になる。
+- 値は `0.01` 単位に丸めて扱う。
+- 同一 `LPB, num` に配置できる continuous ノートは 1 件だけである。
+- single モード:
+- 空位置クリックでノート追加
+- 既存ノートクリックで削除
+- 既存ノートドラッグで値を上下に微調整
+- Shift + クリックで long 編集へ入る
+- long モード:
+- 空位置クリックで long 節点追加
+- 既存 long ノートクリックで tail 指定、接続、または削除
+- Esc または右クリックで long モード終了
+
+### 4.5 キーボード入力による打鍵登録
 
 - 設定されたキー配列に対応して各レーンへノートを打ち込める。
 - 再生中は `-5000` サンプルの補正を入れて、体感遅延を吸収する設計になっている。
 - 入力時刻は `BPM` と `LPB` に基づき最寄り分解能へ丸める。
 
-### 4.5 範囲選択と編集
+### 4.6 範囲選択と編集
 
 - Ctrl + ドラッグで矩形範囲選択
 - Ctrl + A ですべて選択
@@ -77,20 +94,23 @@ README では `wav` 対応と記載されているが、現実装では `UnityWe
 貼り付けは「コピー範囲の末尾拍の次の拍」へオフセットして行う。  
 ロングノートは、コピー対象内に含まれる節点どうしだけが `prev` / `next` で再接続される。
 
-### 4.6 表示操作
+continuous ノートは現状この範囲選択・コピー貼り付けの対象外である。
+
+### 4.7 表示操作
 
 - Ctrl + マウスホイール、上下矢印、または専用スライダーで横方向ズーム
 - 波形領域の垂直線ハンドルのドラッグで表示オフセット移動
 - 波形表示の ON/OFF 切替
 - グリッド線、拍番号、ノート、ロングノート接続線を描画
 
-### 4.7 音声補助
+### 4.8 音声補助
 
 - 再生中、ノート位置に合わせてクラップ音を再生できる。
 - クラップ音はトグルで有効/無効を切り替える。
 - ボリュームスライダーで楽曲音量を変更できる。
+- クラップ対象には block ノートに加えて continuous ノートも含まれる。
 
-### 4.8 保存
+### 4.9 保存
 
 - Ctrl + S または保存ボタンで JSON 保存
 - 未保存状態を画面表示とボタン色で通知
@@ -108,6 +128,7 @@ README では `wav` 対応と記載されているが、現実装では `UnityWe
 - `BPM`: テンポ
 - `OffsetSamples`: 譜面オフセット
 - `Notes`: `Dictionary<NotePosition, NoteObject>`
+- `ContinuousNotes`: `Dictionary<ContinuousNoteTime, ContinuousNoteObject>`
 
 ### 5.2 NotePosition
 
@@ -159,6 +180,36 @@ README では `wav` 対応と記載されているが、現実装では `UnityWe
 - 選択中: マゼンタ
 - 不正ロング接続: 赤
 
+### 5.5 ContinuousNoteTime
+
+- `LPB`
+- `num`
+
+意味:
+
+- block ノートと同じ時間軸分解能を表す
+- `block` を持たず、縦方向情報は `value` に分離される
+
+### 5.6 ContinuousNote
+
+- `time`
+- `type`: `Single` または `Long`
+- `next`
+- `prev`
+- `value`: `0.00`〜`1.00`
+
+continuous long ノートも block long ノートと同様に、節点間の `prev` / `next` で表現される。
+
+### 5.7 ContinuousNoteObject
+
+- `note`
+- `NoteColor`
+
+色の状態:
+
+- 通常 single: 黄緑
+- 通常 long: シアン
+
 ## 6. データ保存仕様
 
 ### 6.1 譜面保存先
@@ -177,6 +228,7 @@ DTO は `Assets/Scripts/DTO/MusicDTO.cs` に定義されている。
 - `BPM`
 - `offset`
 - `notes`
+- `continuousNotes`
 
 ノート要素:
 
@@ -193,6 +245,21 @@ DTO は `Assets/Scripts/DTO/MusicDTO.cs` に定義されている。
 
 ロングノートは「先頭節点 1 件 + 後続節点配列」で保存される。  
 デシリアライズ時は順に `AddNote` した後で `prev` / `next` を再構築する。
+
+continuous ノート要素:
+
+- `LPB`
+- `num`
+- `type`
+- `value`
+- `notes`
+
+`type` の値:
+
+- `1`: continuous single
+- `2`: continuous long
+
+continuous long も block long と同じく「先頭節点 1 件 + 後続節点配列」で保存される。
 
 ### 6.3 設定ファイル
 
@@ -273,6 +340,7 @@ DTO は `Assets/Scripts/DTO/MusicDTO.cs` に定義されている。
 - オフセット
 - MaxBlock
 - ノート編集関連イベント
+- continuous ノート編集関連イベント
 
 楽曲ロードまたは保存操作時には未保存フラグを下ろす。
 
@@ -305,16 +373,19 @@ DTO は `Assets/Scripts/DTO/MusicDTO.cs` に定義されている。
 - 中央に波形とグリッド
 - 水平方向に時間
 - 垂直方向にレーン
+- 上段に block ノート編集領域
+- 下段に continuous ノート編集領域
 - 補助線、選択矩形、ロング接続線を GL 描画
 - 拍番号は UI テキストを動的生成して重ねる
 
 ## 10. 実装から読み取れる制約・注意点
 
 - `SettingsSerializer` と `SettingsDTO.GetDefaultSettings()` の初期ワークスペースパスが `/Users/miyu/Documents/Charts` に固定されている。
-- `BlockNumToCanvasPositionY` は `maxIndex = EditData.MaxBlock.Value - 1` を使うため、`MaxBlock = 1` は 0 除算リスクがある。
+- `BlockNumToCanvasPositionY` は `maxIndex = EditData.MaxBlock.Value - 1` を使うが、現行実装では `maxIndex <= 0` の場合に `0f` を返す。
 - `WaveformRenderer` のサンプル配列長は `500000` 固定であり、長尺音源やズーム条件によっては表示精度とコストに影響する。
 - `SavePresenter` の終了確認はアプリ終了時のみで、楽曲切替前確認はない。
 - `NotePosition.Equals` は拍比率比較であり、LPB 違いでも等値になるため、辞書キーの意味を理解して扱う必要がある。
+- `ContinuousNoteTime.Equals` も拍比率比較であり、LPB 違いでも同時刻として扱われる。
 - `SingletonMonoBehaviour` は存在しない場合に新規 GameObject を生成するため、シーン結線が欠けていても null にはならないが、意図しないランタイム生成が起こりうる。
 
 ## 11. 現在のアーキテクチャ要約
