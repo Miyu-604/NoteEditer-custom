@@ -30,7 +30,9 @@ namespace NoteEditor.DTO
         {
             public int LPB;
             public int num;
+            public int type;
             public float value;
+            public List<ContinuousNote> notes;
         }
     }
 }

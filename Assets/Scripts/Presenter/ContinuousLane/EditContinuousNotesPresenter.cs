@@ -1,6 +1,7 @@
 ﻿using NoteEditor.Common;
 using NoteEditor.ContinuousNotes;
 using NoteEditor.Model;
+using NoteEditor.Notes;
 using NoteEditor.Utility;
 using System.Linq;
 using UniRx;
@@ -27,6 +28,10 @@ namespace NoteEditor.Presenter
         void Awake()
         {
             Audio.OnLoad.Subscribe(_ => ResetInteractionState());
+
+            EditState.NoteType
+                .Where(type => type == NoteTypes.Single)
+                .Subscribe(_ => ContinuousEditState.LongNoteTailTime.Value = ContinuousNoteTime.None);
 
             this.UpdateAsObservable()
                 .Where(_ => Audio.Source.clip != null)
@@ -71,7 +76,22 @@ namespace NoteEditor.Presenter
 
         void BeginInteraction(Vector2 mousePosition)
         {
-            if (TryGetClosestNote(mousePosition, out var noteObject))
+            var hasClosestNote = TryGetClosestNote(mousePosition, out var noteObject);
+
+            if (EditState.NoteType.Value == NoteTypes.Single && KeyInput.ShiftKey())
+            {
+                EditState.NoteType.Value = NoteTypes.Long;
+                BeginLongEditing(mousePosition, hasClosestNote ? noteObject : null);
+                return;
+            }
+
+            if (EditState.NoteType.Value == NoteTypes.Long)
+            {
+                BeginLongModeInteraction(mousePosition, hasClosestNote ? noteObject : null);
+                return;
+            }
+
+            if (hasClosestNote)
             {
                 isPointerDownOnNote = true;
                 isDragging = false;
@@ -87,14 +107,139 @@ namespace NoteEditor.Presenter
                 return;
             }
 
+            var note = new ContinuousNote(time, ContinuousConvertUtils.ScreenYToValue(mousePosition.y), NoteTypes.Single);
             EditCommandManager.Do(new Command(
                 () =>
                 {
-                    var note = new ContinuousNote(time, ContinuousConvertUtils.ScreenYToValue(mousePosition.y));
                     AddNote(note);
                     RequestForAddNote.OnNext(new ContinuousNote(note));
                 },
-                () => RemoveNote(new ContinuousNote(time, 0f))));
+                () => RemoveNote(note)));
+        }
+
+        void BeginLongEditing(Vector2 mousePosition, ContinuousNoteObject noteObject)
+        {
+            if (noteObject != null)
+            {
+                if (noteObject.note.type == NoteTypes.Long)
+                {
+                    if (noteObject.note.next.Equals(ContinuousNoteTime.None))
+                    {
+                        ContinuousEditState.LongNoteTailTime.Value = noteObject.note.time;
+                    }
+                    return;
+                }
+
+                var current = new ContinuousNote(
+                    noteObject.note.time,
+                    noteObject.note.value,
+                    NoteTypes.Long,
+                    ContinuousNoteTime.None,
+                    ContinuousEditState.LongNoteTailTime.Value);
+                var previous = new ContinuousNote(noteObject.note);
+
+                EditCommandManager.Do(new Command(
+                    () =>
+                    {
+                        ApplyNoteState(current);
+                        RequestForChangeNote.OnNext(new ContinuousNote(current));
+                    },
+                    () =>
+                    {
+                        ApplyNoteState(previous);
+                        RequestForChangeNote.OnNext(new ContinuousNote(previous));
+                    }));
+                return;
+            }
+
+            AddLongNoteAt(mousePosition);
+        }
+
+        void BeginLongModeInteraction(Vector2 mousePosition, ContinuousNoteObject noteObject)
+        {
+            if (noteObject != null)
+            {
+                if (noteObject.note.type != NoteTypes.Long)
+                {
+                    return;
+                }
+
+                var tailTime = ContinuousEditState.LongNoteTailTime.Value;
+                if (!tailTime.Equals(ContinuousNoteTime.None)
+                    && noteObject.note.prev.Equals(ContinuousNoteTime.None)
+                    && !tailTime.Equals(noteObject.note.time)
+                    && EditData.ContinuousNotes.ContainsKey(tailTime))
+                {
+                    var tailPrevious = new ContinuousNote(EditData.ContinuousNotes[tailTime].note);
+                    var selfPrevious = new ContinuousNote(noteObject.note);
+                    var tailCurrent = new ContinuousNote(tailPrevious);
+                    var selfCurrent = new ContinuousNote(selfPrevious);
+                    tailCurrent.next = selfCurrent.time;
+                    selfCurrent.prev = tailCurrent.time;
+
+                    EditCommandManager.Do(new Command(
+                        () =>
+                        {
+                            ApplyNoteState(tailCurrent);
+                            ApplyNoteState(selfCurrent);
+                            RequestForChangeNote.OnNext(new ContinuousNote(tailCurrent));
+                            RequestForChangeNote.OnNext(new ContinuousNote(selfCurrent));
+                        },
+                        () =>
+                        {
+                            ApplyNoteState(tailPrevious);
+                            ApplyNoteState(selfPrevious);
+                            RequestForChangeNote.OnNext(new ContinuousNote(tailPrevious));
+                            RequestForChangeNote.OnNext(new ContinuousNote(selfPrevious));
+                        }));
+                    return;
+                }
+
+                var removed = new ContinuousNote(noteObject.note);
+                if (EditData.ContinuousNotes.ContainsKey(removed.prev) && !EditData.ContinuousNotes.ContainsKey(removed.next))
+                {
+                    ContinuousEditState.LongNoteTailTime.Value = removed.prev;
+                }
+
+                EditCommandManager.Do(new Command(
+                    () =>
+                    {
+                        RemoveNote(removed);
+                        RequestForRemoveNote.OnNext(new ContinuousNote(removed));
+                    },
+                    () =>
+                    {
+                        AddNote(removed);
+                        RequestForAddNote.OnNext(new ContinuousNote(removed));
+                    }));
+                return;
+            }
+
+            AddLongNoteAt(mousePosition);
+        }
+
+        void AddLongNoteAt(Vector2 mousePosition)
+        {
+            var time = ContinuousConvertUtils.ScreenXToTime(mousePosition.x);
+            if (time.Equals(ContinuousNoteTime.None) || EditData.ContinuousNotes.ContainsKey(time))
+            {
+                return;
+            }
+
+            var note = new ContinuousNote(
+                time,
+                ContinuousConvertUtils.ScreenYToValue(mousePosition.y),
+                NoteTypes.Long,
+                ContinuousNoteTime.None,
+                ContinuousEditState.LongNoteTailTime.Value);
+
+            EditCommandManager.Do(new Command(
+                () =>
+                {
+                    AddNote(note);
+                    RequestForAddNote.OnNext(new ContinuousNote(note));
+                },
+                () => RemoveNote(note)));
         }
 
         void UpdateDrag(Vector2 mousePosition)
@@ -110,7 +255,12 @@ namespace NoteEditor.Presenter
             }
 
             draggingValue = ContinuousConvertUtils.ScreenYToValue(mousePosition.y);
-            ChangeNote(new ContinuousNote(initialNote.time, draggingValue));
+            ChangeNote(new ContinuousNote(
+                initialNote.time,
+                draggingValue,
+                initialNote.type,
+                initialNote.next,
+                initialNote.prev));
         }
 
         void FinishInteraction()
@@ -139,7 +289,12 @@ namespace NoteEditor.Presenter
             }
             else
             {
-                var current = new ContinuousNote(initialNote.time, draggingValue);
+                var current = new ContinuousNote(
+                    initialNote.time,
+                    draggingValue,
+                    initialNote.type,
+                    initialNote.next,
+                    initialNote.prev);
                 if (!Mathf.Approximately(initialNote.value, current.value))
                 {
                     EditCommandManager.Do(new Command(
@@ -200,15 +355,39 @@ namespace NoteEditor.Presenter
                 return;
             }
 
+            ApplyNoteState(note);
+        }
+
+        void ApplyNoteState(ContinuousNote note)
+        {
             note.value = ContinuousConvertUtils.RoundValue(note.value);
 
             if (EditData.ContinuousNotes.ContainsKey(note.time))
             {
-                ChangeNote(note);
-                return;
+                var current = EditData.ContinuousNotes[note.time].note;
+                if (current.type == NoteTypes.Long)
+                {
+                    RemoveLink(current);
+                }
+
+                EditData.ContinuousNotes[note.time].note = new ContinuousNote(note);
+            }
+            else
+            {
+                EditData.ContinuousNotes.Add(note.time, new ContinuousNoteObject { note = new ContinuousNote(note) });
             }
 
-            EditData.ContinuousNotes.Add(note.time, new ContinuousNoteObject { note = new ContinuousNote(note) });
+            if (note.type == NoteTypes.Long)
+            {
+                InsertLink(note);
+                ContinuousEditState.LongNoteTailTime.Value = ContinuousEditState.LongNoteTailTime.Value.Equals(note.prev)
+                    ? note.time
+                    : ContinuousNoteTime.None;
+            }
+            else if (ContinuousEditState.LongNoteTailTime.Value.Equals(note.time))
+            {
+                ContinuousEditState.LongNoteTailTime.Value = ContinuousNoteTime.None;
+            }
         }
 
         void ChangeNote(ContinuousNote note)
@@ -218,7 +397,7 @@ namespace NoteEditor.Presenter
                 return;
             }
 
-            EditData.ContinuousNotes[note.time].note.value = ContinuousConvertUtils.RoundValue(note.value);
+            ApplyNoteState(note);
         }
 
         void RemoveNote(ContinuousNote note)
@@ -228,7 +407,44 @@ namespace NoteEditor.Presenter
                 return;
             }
 
+            var current = EditData.ContinuousNotes[note.time].note;
+            if (current.type == NoteTypes.Long)
+            {
+                RemoveLink(current);
+            }
+
             EditData.ContinuousNotes.Remove(note.time);
+
+            if (ContinuousEditState.LongNoteTailTime.Value.Equals(note.time))
+            {
+                ContinuousEditState.LongNoteTailTime.Value = ContinuousNoteTime.None;
+            }
+        }
+
+        void RemoveLink(ContinuousNote note)
+        {
+            if (EditData.ContinuousNotes.ContainsKey(note.prev))
+            {
+                EditData.ContinuousNotes[note.prev].note.next = note.next;
+            }
+
+            if (EditData.ContinuousNotes.ContainsKey(note.next))
+            {
+                EditData.ContinuousNotes[note.next].note.prev = note.prev;
+            }
+        }
+
+        void InsertLink(ContinuousNote note)
+        {
+            if (EditData.ContinuousNotes.ContainsKey(note.prev))
+            {
+                EditData.ContinuousNotes[note.prev].note.next = note.time;
+            }
+
+            if (EditData.ContinuousNotes.ContainsKey(note.next))
+            {
+                EditData.ContinuousNotes[note.next].note.prev = note.time;
+            }
         }
     }
 }

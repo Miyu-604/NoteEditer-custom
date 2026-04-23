@@ -21,6 +21,7 @@ namespace NoteEditor.Model
                 .Where(note => !(note.note.type == NoteTypes.Long && EditData.Notes.ContainsKey(note.note.prev)))
                 .OrderBy(note => note.note.position.ToSamples(Audio.Source.clip.frequency, EditData.BPM.Value));
             var sortedContinuousNotes = EditData.ContinuousNotes.Values
+                .Where(note => !(note.note.type == NoteTypes.Long && EditData.ContinuousNotes.ContainsKey(note.note.prev)))
                 .OrderBy(note => note.note.time.ToSamples(Audio.Source.clip.frequency, EditData.BPM.Value));
 
             dto.notes = new List<MusicDTO.Note>();
@@ -50,7 +51,24 @@ namespace NoteEditor.Model
 
             foreach (var continuousNoteObject in sortedContinuousNotes)
             {
-                dto.continuousNotes.Add(ToDTO(continuousNoteObject));
+                if (continuousNoteObject.note.type == NoteTypes.Single)
+                {
+                    dto.continuousNotes.Add(ToDTO(continuousNoteObject));
+                }
+                else if (continuousNoteObject.note.type == NoteTypes.Long)
+                {
+                    var current = continuousNoteObject;
+                    var note = ToDTO(continuousNoteObject);
+
+                    while (EditData.ContinuousNotes.ContainsKey(current.note.next))
+                    {
+                        var nextObj = EditData.ContinuousNotes[current.note.next];
+                        note.notes.Add(ToDTO(nextObj));
+                        current = nextObj;
+                    }
+
+                    dto.continuousNotes.Add(note);
+                }
             }
 
             return UnityEngine.JsonUtility.ToJson(dto);
@@ -93,7 +111,29 @@ namespace NoteEditor.Model
 
             foreach (var continuousNote in editData.continuousNotes ?? new List<MusicDTO.ContinuousNote>())
             {
-                continuousNotePresenter.AddNote(ToContinuousNoteObject(continuousNote));
+                if (continuousNote.type == 2)
+                {
+                    var longNoteObjects = new[] { continuousNote }.Concat(continuousNote.notes ?? new List<MusicDTO.ContinuousNote>())
+                        .Select(note_ =>
+                        {
+                            var model = ToContinuousNoteObject(note_);
+                            continuousNotePresenter.AddNote(model);
+                            return EditData.ContinuousNotes[model.time];
+                        })
+                        .ToList();
+
+                    for (int i = 1; i < longNoteObjects.Count; i++)
+                    {
+                        longNoteObjects[i].note.prev = longNoteObjects[i - 1].note.time;
+                        longNoteObjects[i - 1].note.next = longNoteObjects[i].note.time;
+                    }
+
+                    ContinuousEditState.LongNoteTailTime.Value = NoteEditor.ContinuousNotes.ContinuousNoteTime.None;
+                }
+                else
+                {
+                    continuousNotePresenter.AddNote(ToContinuousNoteObject(continuousNote));
+                }
             }
         }
 
@@ -121,7 +161,9 @@ namespace NoteEditor.Model
             {
                 LPB = noteObject.note.time.LPB,
                 num = noteObject.note.time.num,
-                value = noteObject.note.value
+                type = noteObject.note.type == NoteTypes.Long ? 2 : 1,
+                value = noteObject.note.value,
+                notes = new List<MusicDTO.ContinuousNote>()
             };
         }
 
@@ -129,7 +171,10 @@ namespace NoteEditor.Model
         {
             return new NoteEditor.ContinuousNotes.ContinuousNote(
                 new NoteEditor.ContinuousNotes.ContinuousNoteTime(note.LPB, note.num),
-                note.value);
+                note.value,
+                note.type == 2 ? NoteTypes.Long : NoteTypes.Single,
+                NoteEditor.ContinuousNotes.ContinuousNoteTime.None,
+                NoteEditor.ContinuousNotes.ContinuousNoteTime.None);
         }
     }
 }

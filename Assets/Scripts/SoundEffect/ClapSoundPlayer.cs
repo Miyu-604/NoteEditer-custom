@@ -17,13 +17,17 @@ namespace NoteEditor.SoundEffect
         void Awake()
         {
             var editPresenter = EditNotesPresenter.Instance;
+            var continuousEditPresenter = EditContinuousNotesPresenter.Instance;
             var clapOffsetSamples = 1800;
 
             var editedDuringPlaybackObservable = Observable.Merge(
                     EditData.OffsetSamples.Select(_ => false),
                     editPresenter.RequestForEditNote.Select(_ => false),
                     editPresenter.RequestForRemoveNote.Select(_ => false),
-                    editPresenter.RequestForAddNote.Select(_ => false))
+                    editPresenter.RequestForAddNote.Select(_ => false),
+                    continuousEditPresenter.RequestForAddNote.Select(_ => false),
+                    continuousEditPresenter.RequestForRemoveNote.Select(_ => false),
+                    continuousEditPresenter.RequestForChangeNote.Select(_ => false))
                 .Where(_ => Audio.IsPlaying.Value);
 
             Audio.IsPlaying.Where(isPlaying => isPlaying)

@@ -84,6 +84,7 @@ namespace NoteEditor.Presenter
             EditData.ContinuousNotes.Clear();
             ContinuousEditState.IsMouseOverLane.Value = false;
             ContinuousEditState.ClosestTime.Value = ContinuousNoteTime.None;
+            ContinuousEditState.LongNoteTailTime.Value = ContinuousNoteTime.None;
             ContinuousEditState.ClosestValue.Value = 0f;
             Resources.UnloadUnusedAssets();
         }
