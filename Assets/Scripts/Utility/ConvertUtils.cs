@@ -1,6 +1,7 @@
 ﻿using NoteEditor.Model;
 using NoteEditor.DTO;
 using NoteEditor.Notes;
+using NoteEditor.Presenter;
 using UnityEngine;
 
 namespace NoteEditor.Utility
@@ -25,9 +26,20 @@ namespace NoteEditor.Utility
 
         public static float BlockNumToCanvasPositionY(int blockNum)
         {
-            var height = 240f;
             var maxIndex = EditData.MaxBlock.Value - 1;
-            return ((maxIndex - blockNum) * height / maxIndex - height / 2) / NoteCanvas.ScaleFactor.Value;
+            if (maxIndex <= 0)
+            {
+                return 0f;
+            }
+
+            var corners = new Vector3[4];
+            NoteRegionView.NoteRegionRectTransform.GetWorldCorners(corners);
+
+            var topY = corners[1].y;
+            var bottomY = corners[0].y;
+            var screenY = Mathf.Lerp(bottomY, topY, (maxIndex - blockNum) / (float)maxIndex);
+
+            return ScreenToCanvasPosition(new Vector3(0, screenY, 0)).y / NoteCanvas.ScaleFactor.Value;
         }
 
         public static Vector3 NoteToCanvasPosition(NotePosition notePosition)

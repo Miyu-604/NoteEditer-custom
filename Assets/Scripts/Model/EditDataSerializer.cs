@@ -20,8 +20,11 @@ namespace NoteEditor.Model
             var sortedNoteObjects = EditData.Notes.Values
                 .Where(note => !(note.note.type == NoteTypes.Long && EditData.Notes.ContainsKey(note.note.prev)))
                 .OrderBy(note => note.note.position.ToSamples(Audio.Source.clip.frequency, EditData.BPM.Value));
+            var sortedContinuousNotes = EditData.ContinuousNotes.Values
+                .OrderBy(note => note.note.time.ToSamples(Audio.Source.clip.frequency, EditData.BPM.Value));
 
             dto.notes = new List<MusicDTO.Note>();
+            dto.continuousNotes = new List<MusicDTO.ContinuousNote>();
 
             foreach (var noteObject in sortedNoteObjects)
             {
@@ -45,6 +48,11 @@ namespace NoteEditor.Model
                 }
             }
 
+            foreach (var continuousNoteObject in sortedContinuousNotes)
+            {
+                dto.continuousNotes.Add(ToDTO(continuousNoteObject));
+            }
+
             return UnityEngine.JsonUtility.ToJson(dto);
         }
 
@@ -52,6 +60,7 @@ namespace NoteEditor.Model
         {
             var editData = UnityEngine.JsonUtility.FromJson<MusicDTO.EditData>(json);
             var notePresenter = EditNotesPresenter.Instance;
+            var continuousNotePresenter = EditContinuousNotesPresenter.Instance;
 
             EditData.BPM.Value = editData.BPM;
             EditData.MaxBlock.Value = editData.maxBlock;
@@ -81,6 +90,11 @@ namespace NoteEditor.Model
 
                 EditState.LongNoteTailPosition.Value = NotePosition.None;
             }
+
+            foreach (var continuousNote in editData.continuousNotes ?? new List<MusicDTO.ContinuousNote>())
+            {
+                continuousNotePresenter.AddNote(ToContinuousNoteObject(continuousNote));
+            }
         }
 
         static MusicDTO.Note ToDTO(NoteObject noteObject)
@@ -99,6 +113,23 @@ namespace NoteEditor.Model
             return new Note(
                 new NotePosition(musicNote.LPB, musicNote.num, musicNote.block),
                 musicNote.type == 1 ? NoteTypes.Single : NoteTypes.Long);
+        }
+
+        static MusicDTO.ContinuousNote ToDTO(NoteEditor.ContinuousNotes.ContinuousNoteObject noteObject)
+        {
+            return new MusicDTO.ContinuousNote
+            {
+                LPB = noteObject.note.time.LPB,
+                num = noteObject.note.time.num,
+                value = noteObject.note.value
+            };
+        }
+
+        public static NoteEditor.ContinuousNotes.ContinuousNote ToContinuousNoteObject(MusicDTO.ContinuousNote note)
+        {
+            return new NoteEditor.ContinuousNotes.ContinuousNote(
+                new NoteEditor.ContinuousNotes.ContinuousNoteTime(note.LPB, note.num),
+                note.value);
         }
     }
 }

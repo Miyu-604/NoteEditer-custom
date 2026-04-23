@@ -12,6 +12,7 @@ namespace NoteEditor.DTO
             public int BPM;
             public int offset;
             public List<Note> notes;
+            public List<ContinuousNote> continuousNotes;
         }
 
         [System.Serializable]
@@ -22,6 +23,14 @@ namespace NoteEditor.DTO
             public int block;
             public int type;
             public List<Note> notes;
+        }
+
+        [System.Serializable]
+        public class ContinuousNote
+        {
+            public int LPB;
+            public int num;
+            public float value;
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using NoteEditor.Notes;
 using NoteEditor.Model;
+using NoteEditor.Presenter;
 using NoteEditor.Utility;
 using System;
 using System.Linq;
@@ -48,6 +49,12 @@ namespace NoteEditor.GLDrawing
                 .Where(_ => Audio.Source != null && Audio.Source.clip != null)
                 .Subscribe(_ =>
                 {
+                    var regionCorners = new Vector3[4];
+                    NoteRegionView.NoteRegionRectTransform.GetWorldCorners(regionCorners);
+                    var regionTop = regionCorners[1].y;
+                    var regionBottom = regionCorners[0].y;
+                    var regionCenter = (regionTop + regionBottom) * 0.5f;
+                    var regionHalfHeight = (regionTop - regionBottom) * 0.5f;
                     var unitBeatSamples = Mathf.FloorToInt(Audio.Source.clip.frequency * 60f / EditData.BPM.Value);
                     var beatNum = EditData.LPB.Value * Mathf.CeilToInt(Audio.Source.clip.samples / (float)unitBeatSamples);
 
@@ -58,11 +65,15 @@ namespace NoteEditor.GLDrawing
                             .ToArray();
 
                         beatLines = beatSamples
-                            .Select(x => ConvertUtils.SamplesToCanvasPositionX(x))
-                            .Select((x, i) => new Line(
-                                ConvertUtils.CanvasToScreenPosition(new Vector3(x,  140 * BeatLineLengthFactor(i), 0)),
-                                ConvertUtils.CanvasToScreenPosition(new Vector3(x, -140 * BeatLineLengthFactor(i), 0)),
-                                BeatLineColor(i)))
+                            .Select(x => ConvertUtils.CanvasToScreenPosition(new Vector3(ConvertUtils.SamplesToCanvasPositionX(x), 0, 0)).x)
+                            .Select((screenX, i) =>
+                            {
+                                var lineHalfHeight = regionHalfHeight * BeatLineLengthFactor(i);
+                                return new Line(
+                                    new Vector3(screenX, regionCenter + lineHalfHeight, 0),
+                                    new Vector3(screenX, regionCenter - lineHalfHeight, 0),
+                                    BeatLineColor(i));
+                            })
                             .ToArray();
 
                         cachedZeroSamplePosX = beatLines[0].start.x;
@@ -85,8 +96,7 @@ namespace NoteEditor.GLDrawing
                     if (blockLines.Length != EditData.MaxBlock.Value)
                     {
                         blockLines = Enumerable.Range(0, EditData.MaxBlock.Value)
-                            .Select(i => ConvertUtils.BlockNumToCanvasPositionY(i))
-                            .Select(i => i + Screen.height * 0.5f)
+                            .Select(i => ConvertUtils.CanvasToScreenPosition(new Vector3(0, ConvertUtils.BlockNumToCanvasPositionY(i) * NoteCanvas.ScaleFactor.Value, 0)).y)
                             .Select((y, i) => new Line(
                                 new Vector3(0, y, 0),
                                 new Vector3(Screen.width, y, 0),
@@ -145,7 +155,7 @@ namespace NoteEditor.GLDrawing
                             if (i % (EditData.LPB.Value * 4 * intervalFactor) == 0)
                             {
                                 BeatNumberRenderer.Render(
-                                    new Vector3(beatLines[i].start.x, Screen.height / 2f + 154 / NoteCanvas.ScaleFactor.Value, 0),
+                                    new Vector3(beatLines[i].start.x, regionTop + 12f, 0),
                                     i / (EditData.LPB.Value * 4));
                             }
                         }

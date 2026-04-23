@@ -1,4 +1,5 @@
-﻿using NoteEditor.Model;
+﻿using NoteEditor.ContinuousNotes;
+using NoteEditor.Model;
 using NoteEditor.Presenter;
 using System.Collections.Generic;
 using System.Linq;
@@ -31,6 +32,8 @@ namespace NoteEditor.SoundEffect
                     new Queue<int>(
                         EditData.Notes.Values
                             .Select(noteObject => noteObject.note.position.ToSamples(Audio.Source.clip.frequency, EditData.BPM.Value))
+                            .Concat(EditData.ContinuousNotes.Values
+                                .Select(noteObject => noteObject.note.time.ToSamples(Audio.Source.clip.frequency, EditData.BPM.Value)))
                             .Distinct()
                             .Select(samples => samples + EditData.OffsetSamples.Value)
                             .Where(samples => Audio.Source.timeSamples <= samples)

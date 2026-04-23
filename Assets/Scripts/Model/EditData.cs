@@ -1,4 +1,5 @@
-﻿using NoteEditor.Notes;
+﻿using NoteEditor.ContinuousNotes;
+using NoteEditor.Notes;
 using NoteEditor.Utility;
 using System.Collections.Generic;
 using UniRx;
@@ -13,6 +14,7 @@ namespace NoteEditor.Model
         ReactiveProperty<int> BPM_ = new ReactiveProperty<int>(120);
         ReactiveProperty<int> offsetSamples_ = new ReactiveProperty<int>(0);
         Dictionary<NotePosition, NoteObject> notes_ = new Dictionary<NotePosition, NoteObject>();
+        Dictionary<ContinuousNoteTime, ContinuousNoteObject> continuousNotes_ = new Dictionary<ContinuousNoteTime, ContinuousNoteObject>();
 
         public static ReactiveProperty<string> Name { get { return Instance.name_; } }
         public static ReactiveProperty<int> MaxBlock { get { return Instance.maxBlock_; } }
@@ -20,5 +22,6 @@ namespace NoteEditor.Model
         public static ReactiveProperty<int> BPM { get { return Instance.BPM_; } }
         public static ReactiveProperty<int> OffsetSamples { get { return Instance.offsetSamples_; } }
         public static Dictionary<NotePosition, NoteObject> Notes { get { return Instance.notes_; } }
+        public static Dictionary<ContinuousNoteTime, ContinuousNoteObject> ContinuousNotes { get { return Instance.continuousNotes_; } }
     }
 }

@@ -1,4 +1,5 @@
-﻿using NoteEditor.Model;
+﻿using NoteEditor.ContinuousNotes;
+using NoteEditor.Model;
 using NoteEditor.Notes;
 using System.Collections;
 using System.IO;
@@ -80,6 +81,10 @@ namespace NoteEditor.Presenter
             }
 
             EditData.Notes.Clear();
+            EditData.ContinuousNotes.Clear();
+            ContinuousEditState.IsMouseOverLane.Value = false;
+            ContinuousEditState.ClosestTime.Value = ContinuousNoteTime.None;
+            ContinuousEditState.ClosestValue.Value = 0f;
             Resources.UnloadUnusedAssets();
         }
     }

@@ -37,6 +37,7 @@ namespace NoteEditor.Presenter
         void Awake()
         {
             var editPresenter = EditNotesPresenter.Instance;
+            var continuousEditPresenter = EditContinuousNotesPresenter.Instance;
 
             this.UpdateAsObservable()
                 .Where(_ => Input.GetKeyDown(KeyCode.Escape))
@@ -54,6 +55,9 @@ namespace NoteEditor.Presenter
                     editPresenter.RequestForAddNote.Select(_ => true),
                     editPresenter.RequestForRemoveNote.Select(_ => true),
                     editPresenter.RequestForChangeNoteStatus.Select(_ => true),
+                    continuousEditPresenter.RequestForAddNote.Select(_ => true),
+                    continuousEditPresenter.RequestForRemoveNote.Select(_ => true),
+                    continuousEditPresenter.RequestForChangeNote.Select(_ => true),
                     Audio.OnLoad.Select(_ => false),
                     saveActionObservable.Select(_ => false))
                 .SkipUntil(Audio.OnLoad.DelayFrame(1))
