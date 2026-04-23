@@ -13,7 +13,7 @@ namespace NoteEditor.DTO
         {
             return new SettingsDTO
             {
-                workSpacePath = "",
+                workSpacePath = "/Users/miyu/Documents/Charts",
                 maxBlock = 5,
                 noteInputKeyCodes = new List<int> { 114, 99, 103, 121, 98 }
             };

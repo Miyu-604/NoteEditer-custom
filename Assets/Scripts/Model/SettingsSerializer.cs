@@ -16,7 +16,7 @@ namespace NoteEditor.Model
             Settings.MaxBlock = dto.maxBlock;
 
             Settings.WorkSpacePath.Value = string.IsNullOrEmpty(dto.workSpacePath)
-                ? Application.persistentDataPath
+                ? "/Users/miyu/Documents/Charts"
                 : dto.workSpacePath;
         }
 
