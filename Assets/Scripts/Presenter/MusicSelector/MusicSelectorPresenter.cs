@@ -36,7 +36,7 @@ namespace NoteEditor.Presenter
             redoButton.OnClickAsObservable().Subscribe(_ => ChangeLocationCommandManager.Redo());
 
             Settings.WorkSpacePath
-                .Subscribe(workSpacePath => directoryPathInputField.text = Path.Combine(workSpacePath, "Musics"));
+                .Subscribe(workSpacePath => directoryPathInputField.text = Path.Combine(workSpacePath, "Charts"));
 
             directoryPathInputField.OnValueChangedAsObservable()
                 .Subscribe(path => MusicSelector.DirectoryPath.Value = path);
